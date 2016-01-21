@@ -1,0 +1,44 @@
+#!/bin/tcsh 
+
+echo "Usage : $0 dbname sqlfile"
+echo "---------------------------------------------------------------------"
+echo "  Loads sqlfile into the named database."
+echo "  NOTE: This ignores _dbsettings.tcsh."
+echo
+
+if ( $# != 2) then
+	echo "ERROR: Provide the dbname and sqlfile parameters."
+	echo ""
+	exit 1
+endif
+
+set dbname=$1
+set dbsql=$2
+
+if ( ! -e $dbsql ) then
+	echo "ERROR: $dbsql file not found!"
+	echo ""
+	exit 1
+endif
+
+echo "Reading in file $dbsql to database $dbname"
+echo 
+
+mysql --defaults-file=./.my.cnf $dbname < $dbsql
+if ( $? != 0 ) then
+	echo ""
+	echo "ERROR in mysql";
+	echo ""
+	exit 1
+endif
+
+echo ""
+echo "---------------------------------------------------------------------"
+if ( $? == 0 ) then
+	echo " ... successfully read file '$dbsql' to $dbname."
+	echo ""
+else
+	echo "ERROR: failed"
+	echo ""
+	exit 1
+endif

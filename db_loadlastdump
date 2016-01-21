@@ -1,0 +1,57 @@
+#!/bin/tcsh 
+
+
+echo "Usage: $0"
+echo "---------------------------------------------------------------------"
+echo "  Loads last full database dump, into database according to _dbsettings.tcsh."
+echo
+
+# Load settings
+set p=`dirname $0`
+source $p/_dbsettings.tcsh
+if ( $? != 0 ) then
+	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+	exit 1
+endif
+
+# Defines
+set LS="$p/.rebuild.sql"
+set latestdump = `ls -tra dumps/dump_*.sql | tail -n 1`
+
+echo ""
+echo " Settings..."
+echo "---------------------------------------------------------------------"
+#echo "   state : $INSTRAPPTION"
+echo "   DBVER : $DBVER"
+echo "  DBNAME : $DBNAME"
+echo "    dump : $latestdump"
+
+
+
+echo ""
+echo "Build new db (requires mysql root password)"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+echo "drop database if exists $DBNAME;" >> $LS
+echo "create database $DBNAME;" >> $LS 
+echo "grant all privileges on $DBNAME.* to $DBUSER@localhost;" >> $LS 
+mysql -u root -p < $LS
+if ($? != 0 ) then
+	echo ""
+	echo "... failed mysql import."
+	echo ""
+	exit 1
+endif
+
+if ( $latestdump != "" ) then
+	mysql --defaults-file=$p/.my.cnf $DBNAME < $latestdump
+endif
+
+echo ""
+echo "---------------------------------------------------------------------"
+if ( $? == 0 ) then
+	echo " ... successfully created database $DBNAME"
+else
+	echo "ERROR: failed importing the script"
+	exit 1
+endif

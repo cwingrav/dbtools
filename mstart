@@ -1,0 +1,15 @@
+#!/bin/tcsh 
+
+#set p=`dirname $0`
+set cwd=`pwd`"/."
+set p=`dirname $cwd`
+source $p/_dbsettings.tcsh
+if ( $? != 0 ) then
+	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+	exit 1
+endif
+
+echo ""
+echo "Joining MySQL database '$DBNAME'"
+echo ""
+mysql --defaults-file=./.my.cnf $DBNAME

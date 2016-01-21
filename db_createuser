@@ -1,0 +1,84 @@
+#!/bin/tcsh 
+
+echo ""
+echo "Usage: $0 [-f]"
+echo "---------------------------------------------------------------------"
+echo "  Creates a new user for the databases needed for this project. Also"
+echo "  creates an empty database and assigns privileges for the user."
+echo ""
+
+# Load settings
+set cwd=`pwd`"/."
+set p=`dirname $cwd`
+source $p/_dbsettings.tcsh
+if ( $? != 0 ) then
+    echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+    exit 1
+endif
+
+set LS="$p/.rebuild.sql"
+set MY="$p/.my.cnf"
+
+# use my default 
+set PASSWORD="password"
+
+echo ""
+echo " Settings..."
+echo "---------------------------------------------------------------------"
+echo "   APPNAME : $APPNAME (for username)"
+echo "     DBVER : $DBVER"
+echo "    DBUSER : $DBUSER"
+echo "    DBNAME : $DBNAME"
+echo "  PASSWORD : $PASSWORD"
+echo ""
+
+echo "---------------------------------------------------------------------"
+echo "CONFIRM: Create new user now?"
+echo "---------------------------------------------------------------------"
+set isready=$<
+if ( ! ($isready == "Y" || $isready == "y") ) then
+    echo ""
+    echo "... EXITING"
+    echo ""
+    exit 1
+endif
+
+
+echo ""
+echo "Create SQL for creating user"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+#echo "CREATE USER '$DBUSER'@'localhost' IDENTIFIED BY '$PASSWORD';" >> $LS
+echo "CREATE DATABASE IF NOT EXISTS $DBNAME;" >> $LS
+echo "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER'@'localhost';" >> $LS # creates user if not exists
+echo "FLUSH PRIVILEGES;" >> $LS
+echo "   ... done"
+
+
+echo ""
+echo "Create my.cnf file"
+echo "---------------------------------------------------------------------"
+echo "" > $MY
+echo "[client]" >> $MY
+echo 'user="'$DBUSER'"' >> $MY
+echo 'password="'$PASSWORD'"' >> $MY
+echo "" >> $MY
+echo "[mysql]" >> $MY
+echo 'user="'$DBUSER'"' >> $MY
+echo 'password="'$PASSWORD'"' >> $MY
+echo "   ... done"
+
+
+echo ""
+echo "Run import script (requires MySQL root password (which is not syour ystem password))"
+echo "---------------------------------------------------------------------"
+mysql -u root -p < $LS
+if ( $? == 0 ) then
+    echo " ...SUCCESS!"
+    echo
+    echo " ... successfully created database $DBNAME"
+    echo
+else
+    echo "ERROR: failed importing the script"
+    exit 1
+endif

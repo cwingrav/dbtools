@@ -1,0 +1,170 @@
+#!/bin/tcsh
+
+
+echo ""
+echo "Usage: $0 [-f]"
+echo "---------------------------------------------------------------------"
+echo "  Creates a new database version from the old one. Assumes DBVER -1."
+echo "  Or, if ver1, just creates it."
+echo ""
+echo " -f - force 'yes' response to continue"
+echo ""
+
+
+# Check for 'forced' setting
+set isforced=0
+if ( $# == 1 ) then
+	if ( "$1" == "-f" ) then
+	   	set isforced=1
+	endif
+endif
+
+# Load settings
+set cwd=`pwd`"/."
+set p=`dirname $cwd`
+source $p/_dbsettings.tcsh
+if ( $? != 0 ) then
+	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+	exit 1
+endif
+
+# Defines
+set LS="$p/.rebuild.sql"
+set OLDDBVER = `php -r "echo $DBVER-1;";`
+set OLDDBNAME=$APPNAME"_"$ENVIRONMENT"_"$OLDDBVER
+
+echo ""
+echo " Settings..."
+echo "---------------------------------------------------------------------"
+#echo "   state : $INSTRAPPTION"
+echo "     DBVER : $DBVER"
+echo "    DBNAME : $DBNAME"
+if ( "$DBVER" != "1" ) then
+	echo "  OLDDBVER : $OLDDBVER"
+	echo " OLDDBNAME : $OLDDBNAME"
+endif
+
+
+echo ""
+echo ""
+echo "Run pretests"
+echo "---------------------------------------------------------------------"
+if ( -f $p/ver$DBVER/pretest.tcsh ) then
+	source $p/ver$DBVER/pretest.tcsh
+	if ( $? == 0 ) then 
+   		echo "   ... passed"
+	else exit 1
+	endif
+else 
+	echo "  ... no pretest"
+endif
+
+
+# for first version, just reload it, nothing to transition
+if ( $DBVER == 1 ) then
+	echo ""
+	echo ""
+	echo "CONFIRM: Continuing will rebuild database."
+	echo "---------------------------------------------------------------------"
+	echo -n "REBUILD DATABASE [y/N] > "
+	if ( "$isforced" == "1" ) then 
+		set isready="Y"
+	else
+		set isready=$<
+	endif
+	if ( ! ($isready == "Y" || $isready == "y") ) then
+		echo ""
+		echo "... EXITING"
+		echo ""
+		exit 1
+	endif
+else 
+	echo ""
+	echo ""
+	echo "CONFIRM: Continuing will delete and rebuild InstrApption database."
+	echo "---------------------------------------------------------------------"
+	echo "    existing $DBNAME --> delete"
+	echo "             $OLDDBNAME --> $DBNAME "
+	echo "---------------------------------------------------------------------"
+	echo -n "DELETE AND BUILD DATABASE [y/N] > "
+	if ( $isforced == 1 ) then 
+		set isready= 'Y'
+	else
+		set isready=$<
+	endif
+	if ( ! ($isready == "Y" || $isready == "y") ) then
+		echo ""
+		echo "... EXITING"
+		echo ""
+		exit 1
+	endif
+
+
+	echo ""
+	echo ""
+	echo "Save $OLDDBNAME to file."
+	echo "---------------------------------------------------------------------"
+	$p/db_saveall -s $ENVIRONMENT $OLDDBVER
+	if ( $? != 0 ) then
+		echo " : failed. exiting now."
+		echo ""
+		exit 1
+	endif
+	set latestdump = `ls -tra $p/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
+	echo "    : success, file: $latestdump"
+	echo ""
+
+
+endif
+
+echo ""
+echo ""
+echo "Build new db (requires mysql root password)"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+echo "drop database if exists $DBNAME;" >> $LS
+echo "create database $DBNAME;" >> $LS 
+#echo "grant all privileges on $DBNAME.* to $APPNAME@localhost;" >> $LS 
+#mysql -u root -p < $LS
+mysql --defaults-file=$p/.my.cnf < $LS
+if ( $? != 0 ) then
+	echo ""
+	echo "FAILED building database... wrong password?";
+	echo ""
+	echo "  Or, 1st time run, user needs access to create/drop. Run this as root"
+	echo " grant all privileges on `$APPNAME_%`.* to `$APPNAME`@`localhost`;"
+	echo ""
+	exit 1
+endif
+
+
+
+
+echo ""
+echo "Build import script ($LS)"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+echo "use $DBNAME;" >> $LS
+if ( "$DBVER" != "1" ) then
+   	echo "source $latestdump;" >> $LS
+endif
+if ( ! -f $p/ver$DBVER/load.sql ) then
+	echo "ERROR: No $p/ver$DBVER/load.sql file"
+	exit 1
+endif
+echo "source $p/ver$DBVER/load.sql;" >> $LS
+echo " ...done"
+
+echo ""
+echo "Run import script"
+echo "---------------------------------------------------------------------"
+mysql --defaults-file=$p/.my.cnf < $LS
+if ( $? == 0 ) then
+	echo " ...SUCCESS!"
+	echo 
+	echo " ... successfully created database $DBNAME"
+	echo 
+else
+	echo "ERROR: failed importing the script"
+	exit 1
+endif
