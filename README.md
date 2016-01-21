@@ -33,9 +33,9 @@ password=
 
 [SERVER]
 dev.host=localhost
-dev.port=9301
+dev.port=
 test.host=localhost
-test.port=9302
+test.port=
 live.host=?
 live.port=80
 ```
