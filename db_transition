@@ -153,6 +153,10 @@ if ( ! -f $p/ver$DBVER/load.sql ) then
 	exit 1
 endif
 echo "source $p/ver$DBVER/load.sql;" >> $LS
+if ( -f $p/ver$DBVER/load_$ENVIRONMENT.sql ) then
+    echo " ...found load file for $ENVIRONMENT."
+    echo "source $p/ver$DBVER/load_$ENVIRONMENT.sql;" >> $LS
+endif
 echo " ...done"
 
 echo ""
