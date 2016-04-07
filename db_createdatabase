@@ -3,8 +3,9 @@
 echo ""
 echo "Usage: $0 [-f]"
 echo "---------------------------------------------------------------------"
-echo "  Creates a new user for the databases needed for this project. Also"
-echo "  creates an empty database and assigns privileges for the user."
+echo "  Creates a new empty database needed for this project. Also, creates"
+echo "  the user if not exists, and assigns privileges for the user to this"
+echo "  new db."
 echo ""
 
 # Load settings
