@@ -1,0 +1,77 @@
+#!/bin/bash
+
+
+
+# Load settings
+cwd=`pwd`"/."
+p=`dirname $cwd`
+source $p/_dbsettings
+if [ $? != 0 ]; then
+	echo "ERROR: no _dbsettings file. Are you calling from the wrong directory?"
+	exit 1
+fi
+
+D=`date +%Y_%m_%d_%H_%M_%S`
+DUMPF="dumps/dump_$D.sql"
+
+# ensure dumps directory exists
+if [ ! -e $p/dumps ]; then
+    mkdir $p/dumps
+fi
+
+silent=0
+if [ "$1" == "-s" ]; then
+	silent=1
+	shift 
+fi
+
+if [ $# == 2 ]; then
+	ENVIRONMENT=$1
+	DBVER=$2
+	DBNAME=$(ComputeDBName $APPNAME $ENVIRONMENT $DBVER)
+fi
+
+hostname=`hostname -f`
+
+if [ $silent != 1 ]; then
+	echo "Usage: "`basename $0`" [-s] [environment version]"
+	echo "---------------------------------------------------------------------"
+	echo "  Saves current database to a file in dumps directory. Defaults to "
+	echo "  configuration, but can set environment and version information."
+	echo "     ex. $0 development 4  equates to "$APPNAME"_development_4."
+	echo "   -s : silent... don't print this."
+	echo
+
+	echo ""
+	echo " Settings..."
+	echo "---------------------------------------------------------------------"
+	echo "   DBVER : $DBVER"
+	echo "  DBNAME : $DBNAME"
+	echo "    dump : $DUMPF"
+	echo " hostname: $hostname"
+	echo ""
+fi
+
+
+echo "-- ---------------------------------------------------------------------" > $DUMPF
+echo "--  db_saveall : $0 $*" >> $DUMPF
+echo "--          on : $D" >> $DUMPF
+echo "--       DBVER : $DBVER" >> $DUMPF
+echo "--      DBNAME : $DBNAME" >> $DUMPF
+echo "--     hostname: $hostname" >> $DUMPF
+echo "-- ---------------------------------------------------------------------" >> $DUMPF
+echo "" >> $DUMPF
+
+
+mysqldump --defaults-file=./.my.cnf $DBNAME >> $DUMPF
+if [ $? == 0 ]; then
+	if [ $silent != 1 ]; then
+		echo "Success: Created $DUMPF"
+	fi
+else 
+	if [ $silent != 1 ]; then
+		echo "Failed"
+		exit 1
+	fi
+fi
+
