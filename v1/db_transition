@@ -1,0 +1,201 @@
+#!/bin/bash
+
+
+retval=0
+isforced=0
+
+ErrorOut() {
+    retval=1
+    echo "ERROR: .... stuff"
+    echo "   $*"
+    DisplayOptions $0
+}
+
+DisplayOptions() {
+    echo ""
+    echo "Usage: "`basename $0`" [-f]"
+    echo "---------------------------------------------------------------------"
+    echo "  Creates a new database version from the old one. Assumes DBVER -1."
+    echo "  Or, if ver1, just creates it."
+    echo ""
+    echo "    -f/--force - force 'yes' response to continue"
+    echo "     -h/--help - this help message"
+    echo ""
+    exit $retval
+}
+
+
+
+
+# Load settings
+cwd=`pwd`"/."
+p=`dirname $cwd`
+source $p/_dbsettings
+if [ $? != 0 ]; then
+	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+	exit 1
+fi
+
+
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" -o "$1" == "--help" ]; then
+        DisplayOptions $*
+    elif [ "$1" == "-f" -o "$1" == "--force" ]; then
+        isforced=1
+    else
+        echo "ERROR: unknown argument '$1'"
+        ErrorOut
+    fi
+    shift
+done
+
+
+# Defines
+LS="$p/.rebuild.sql"
+OLDDBVER=`php -r "echo $DBVER-1;";`
+OLDDBNAME=$(ComputeDBName $APPNAME $ENVIRONMENT $OLDDBVER)
+echo "OLDDBNAME $OLDDBNAME $APPNAME $ENVIRONMENT $OLDDBVER"
+
+echo ""
+echo " Settings..."
+echo "---------------------------------------------------------------------"
+#echo "   state : $INSTRAPPTION"
+echo "     DBVER : $DBVER"
+echo "    DBNAME : $DBNAME"
+if [ "$DBVER" != "1" ]; then
+	echo "  OLDDBVER : $OLDDBVER"
+	echo " OLDDBNAME : $OLDDBNAME"
+fi
+
+
+echo ""
+echo ""
+echo "Run pretests"
+echo "---------------------------------------------------------------------"
+if [ -f $p/ver$DBVER/pretest.tcsh ]; then
+	source $p/ver$DBVER/pretest.tcsh
+	if [ $? == 0 ]; then 
+   		echo "   ... passed"
+	else 
+      exit 1
+	fi
+else 
+	echo "  ... no pretest"
+fi
+
+
+# for first version, just reload it, nothing to transition
+if [ $DBVER == 1 ]; then
+	echo ""
+	echo ""
+	echo "CONFIRM: Continuing will rebuild database."
+	echo "---------------------------------------------------------------------"
+	echo -n "REBUILD DATABASE [y/N] > "
+	if [ "$isforced" == "1" ]; then 
+		isready="Y"
+	else
+    read isready
+	fi
+	if [ ! \($isready == "Y" -o $isready == "y"\) ]; then
+		echo ""
+		echo "... EXITING"
+		echo ""
+		exit 1
+	fi
+else 
+	echo ""
+	echo ""
+	echo "CONFIRM: Continuing will delete and rebuild InstrApption database."
+	echo "---------------------------------------------------------------------"
+	echo "    existing $DBNAME --> delete"
+	echo "             $OLDDBNAME --> $DBNAME "
+	echo "---------------------------------------------------------------------"
+	echo -n "DELETE AND BUILD DATABASE [y/N] > "
+	if [ $isforced == 1 ]; then 
+		isready='Y'
+	else
+    read isready
+	fi
+	if ! [ "$isready" == "Y" -o "$isready" == "y" ] ; then
+		echo ""
+		echo "... EXITING"
+		echo ""
+		exit 1
+	fi
+
+
+	echo ""
+	echo ""
+	echo "Save $OLDDBNAME to file."
+	echo "---------------------------------------------------------------------"
+	db_saveall -s $ENVIRONMENT $OLDDBVER
+	if [ $? != 0 ]; then
+		echo " : failed. exiting now."
+		echo ""
+		exit 1
+	fi
+	latestdump=`ls -tra $p/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
+	echo "    : success, file: $latestdump"
+	echo ""
+
+
+fi
+
+echo ""
+echo ""
+echo "Build new db (requires mysql root password)"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+echo "drop database if exists $DBNAME;" >> $LS
+echo "create database $DBNAME;" >> $LS 
+#echo "grant all privileges on $DBNAME.* to $APPNAME@localhost;" >> $LS 
+#mysql -u root -p < $LS
+mysql --defaults-file=$p/.my.cnf < $LS
+if [ $? != 0 ]; then
+	echo ""
+	echo "FAILED building database... wrong password?";
+	echo " ...Or, 1st time run, user needs access to create/drop. Run this as root:"
+	echo "   'grant all privileges on \`"$DBNAME"\`.* to \`$DBUSER\`@\`localhost\`;"
+	echo ""
+	exit 1
+fi
+
+
+
+
+echo ""
+echo "Build import script ($LS)"
+echo "---------------------------------------------------------------------"
+echo "" > $LS
+echo "use $DBNAME;" >> $LS
+if [ "$DBVER" != "1" ]; then
+   	echo "source $latestdump;" >> $LS
+fi
+if [ ! -f $p/ver$DBVER/load.sql ]; then
+	echo "ERROR: No $p/ver$DBVER/load.sql file"
+	exit 1
+fi
+echo "source $p/ver$DBVER/load.sql;" >> $LS
+if [ -f $p/ver$DBVER/load_$ENVIRONMENT.sql ]; then
+    echo " ...found load file for $ENVIRONMENT."
+    echo "source $p/ver$DBVER/load_$ENVIRONMENT.sql;" >> $LS
+fi
+echo " ...done"
+
+echo ""
+echo "Run import script"
+echo "---------------------------------------------------------------------"
+mysql --defaults-file=$p/.my.cnf < $LS
+if [ $? == 0 ]; then
+	echo " ...SUCCESS!"
+	echo 
+	echo " ... successfully created database $DBNAME"
+	echo 
+else
+	echo "ERROR: failed importing the script"
+	exit 1
+fi
+
+exit $retval
+
+

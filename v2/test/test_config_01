@@ -1,0 +1,40 @@
+#!/bin/bash
+
+. trycatch.sh
+
+
+TestingStart
+
+
+tryTest "Should fail out due to CONFIGBASE env variable not being set"
+(
+    . db_config
+    throwErrors
+)
+catch || { 
+    throwSuccess 
+}
+
+export CONFIGBASE="TESTING_DBCONFIG"
+tryTest "Should fail due to TESTING_DBCONFIG_CONFIG env variable not being set"
+(
+    . db_config
+    throwErrors
+) 
+catch || { 
+    throwSuccess 
+}
+
+export TESTING_DBCONFIG_SYS='CCOM'
+export TESTING_DBCONFIG_CONFIG='./config.ini'
+tryTest "Should work now."
+(
+    . db_config
+    throwSuccess
+) 
+catch || { 
+    throwErrors
+}
+
+
+TestingFinish

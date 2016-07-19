@@ -1,0 +1,61 @@
+#!/bin/bash
+
+retval=0
+
+#set pp=`dirname $0`
+#cwd=`pwd`"/."
+#p=`dirname $cwd`
+#source $p/config.conf
+#source /usr/local/bin/db_config.conf
+#if [ $? != 0 ]; then
+#	echo "ERROR: no _dbsettings file. Are you calling from the wrong directory?"
+#	exit 1
+#fi
+
+# NOTE: command line params are passed in here
+. db_config
+
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" || "$1" == "--help" ]; then
+        goto DisplayOptions
+    fi
+    shift
+done
+
+# Overwrite due to command line arguments
+if [ $# == 0 ]; then
+    a=1
+
+elif [ $# == 2  ]; then
+    DB_CONFIG_ENVIRONMENT=$1
+    DB_CONFIG_VER=$2
+    DB_CONFIG_NAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+
+else 
+    goto ErrorOut
+fi
+
+
+echo ""
+echo "Joining MySQL database '$DB_CONFIG_DBNAME'"
+echo ""
+mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME
+set retval=$?
+exit $retval
+
+
+
+ErrorOut:
+    set retval=1
+    echo "ERROR: bad command line arguments"
+    echo "   $*"
+DisplayOptions:
+    echo 
+    echo "Usage: "`basename $0`" (-h|--help) {[environment] [version]}"
+    echo
+    echo "   Starts mysql's client with the appropriate database."
+    echo 
+    echo "   environment - 'dev','test','live'"
+    echo "           ver - The database version number."
+    echo
+exit $retval

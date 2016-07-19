@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 retval=0
 isforced=0
 
@@ -30,18 +29,24 @@ DisplayOptions() {
 # Load settings
 cwd=`pwd`"/."
 p=`dirname $cwd`
-source $p/_dbsettings
-if [ $? != 0 ]; then
-	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
-	exit 1
-fi
+#source $p/_dbsettings
+#source $p/config.conf
+#source /usr/local/bin/db_config.conf
+#if [ $? != 0 ]; then
+#	echo "ERROR: no _dbsettings.tcsh file. Are you calling from the wrong directory?"
+#	exit 1
+#fi
 
+sys=""
 
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
     if [ "$1" == "-h" -o "$1" == "--help" ]; then
         DisplayOptions $*
     elif [ "$1" == "-f" -o "$1" == "--force" ]; then
         isforced=1
+    elif [ "$1" == "-s" -o "$1" == "--sys" ]; then
+        shift
+        sys="-s $1"
     else
         echo "ERROR: unknown argument '$1'"
         ErrorOut
@@ -49,20 +54,24 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     shift
 done
 
+. db_config $sys --
 
 # Defines
 LS="$p/.rebuild.sql"
-OLDDBVER=`php -r "echo $DBVER-1;";`
-OLDDBNAME=$(ComputeDBName $APPNAME $ENVIRONMENT $OLDDBVER)
-echo "OLDDBNAME $OLDDBNAME $APPNAME $ENVIRONMENT $OLDDBVER"
+OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
+OLDDBNAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+#echo "OLDDBNAME $OLDDBNAME $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER"
+#OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
+#OLDDBNAME=$(ComputeDBName $APPNAME $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+#echo "OLDDBNAME $OLDDBNAME $APPNAME $DB_CONFIG_ENVIRONMENT $OLDDBVER"
 
 echo ""
 echo " Settings..."
 echo "---------------------------------------------------------------------"
 #echo "   state : $INSTRAPPTION"
-echo "     DBVER : $DBVER"
-echo "    DBNAME : $DBNAME"
-if [ "$DBVER" != "1" ]; then
+echo "     DBVER : $DB_CONFIG_VER"
+echo "    DBNAME : $DB_CONFIG_DBNAME"
+if [ "$DB_CONFIG_VER" != "1" ]; then
 	echo "  OLDDBVER : $OLDDBVER"
 	echo " OLDDBNAME : $OLDDBNAME"
 fi
@@ -72,8 +81,8 @@ echo ""
 echo ""
 echo "Run pretests"
 echo "---------------------------------------------------------------------"
-if [ -f $p/ver$DBVER/pretest.tcsh ]; then
-	source $p/ver$DBVER/pretest.tcsh
+if [ -f $p/ver$DB_CONFIG_VER/pretest.tcsh ]; then
+	source $p/ver$DB_CONFIG_VER/pretest.tcsh
 	if [ $? == 0 ]; then 
    		echo "   ... passed"
 	else 
@@ -85,7 +94,7 @@ fi
 
 
 # for first version, just reload it, nothing to transition
-if [ $DBVER == 1 ]; then
+if [ $DB_CONFIG_VER == 1 ]; then
 	echo ""
 	echo ""
 	echo "CONFIRM: Continuing will rebuild database."
@@ -107,12 +116,12 @@ else
 	echo ""
 	echo "CONFIRM: Continuing will delete and rebuild InstrApption database."
 	echo "---------------------------------------------------------------------"
-	echo "    existing $DBNAME --> delete"
-	echo "             $OLDDBNAME --> $DBNAME "
+	echo "    existing $DB_CONFIG_DBNAME --> delete"
+	echo "             $OLDDBNAME --> $DB_CONFIG_DBNAME "
 	echo "---------------------------------------------------------------------"
 	echo -n "DELETE AND BUILD DATABASE [y/N] > "
 	if [ $isforced == 1 ]; then 
-		isready= 'Y'
+		isready='Y'
 	else
     read isready
 	fi
@@ -128,7 +137,8 @@ else
 	echo ""
 	echo "Save $OLDDBNAME to file."
 	echo "---------------------------------------------------------------------"
-	db_saveall -s $ENVIRONMENT $OLDDBVER
+    echo " db_saveall -q $DB_CONFIG_ENVIRONMENT $OLDDBVER"
+	db_saveall  $DB_CONFIG_ENVIRONMENT $OLDDBVER
 	if [ $? != 0 ]; then
 		echo " : failed. exiting now."
 		echo ""
@@ -146,16 +156,16 @@ echo ""
 echo "Build new db (requires mysql root password)"
 echo "---------------------------------------------------------------------"
 echo "" > $LS
-echo "drop database if exists $DBNAME;" >> $LS
-echo "create database $DBNAME;" >> $LS 
-#echo "grant all privileges on $DBNAME.* to $APPNAME@localhost;" >> $LS 
+echo "drop database if exists $DB_CONFIG_DBNAME;" >> $LS
+echo "create database $DB_CONFIG_DBNAME;" >> $LS 
+#echo "grant all privileges on $DB_CONFIG_DBNAME.* to $APPNAME@localhost;" >> $LS 
 #mysql -u root -p < $LS
 mysql --defaults-file=$p/.my.cnf < $LS
 if [ $? != 0 ]; then
 	echo ""
 	echo "FAILED building database... wrong password?";
 	echo " ...Or, 1st time run, user needs access to create/drop. Run this as root:"
-	echo "   'grant all privileges on \`"$DBNAME"\`.* to \`$DBUSER\`@\`localhost\`;"
+	echo "   'grant all privileges on \`"$DB_CONFIG_DBNAME"\`.* to \`$DBUSER\`@\`localhost\`;"
 	echo ""
 	exit 1
 fi
@@ -167,29 +177,41 @@ echo ""
 echo "Build import script ($LS)"
 echo "---------------------------------------------------------------------"
 echo "" > $LS
-echo "use $DBNAME;" >> $LS
-if [ "$DBVER" != "1" ]; then
+echo "use $DB_CONFIG_DBNAME;" >> $LS
+if [ "$DB_CONFIG_VER" != "1" ]; then
    	echo "source $latestdump;" >> $LS
 fi
-if [ ! -f $p/ver$DBVER/load.sql ]; then
-	echo "ERROR: No $p/ver$DBVER/load.sql file"
+if [ ! -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS.sql" ]; then
+	echo "ERROR: No $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS.sql file"
 	exit 1
 fi
-echo "source $p/ver$DBVER/load.sql;" >> $LS
-if [ -f $p/ver$DBVER/load_$ENVIRONMENT.sql ]; then
-    echo " ...found load file for $ENVIRONMENT."
-    echo "source $p/ver$DBVER/load_$ENVIRONMENT.sql;" >> $LS
+echo "source ./load_$DB_CONFIG_SYS.sql;" >> $LS
+if [ -f "$p/$DB_CONFIG_DBLOAD""_$DB_CONFIG_ENVIRONMENT.sql" ]; then 
+    echo " ...found load file for $DB_CONFIG_ENVIRONMENT."
+    echo "source $p/$DB_CONFIG_DBLOAD""_$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
 fi
+
+#if [ ! -f $p/ver$DB_CONFIG_VER/load.sql ]; then
+#	echo "ERROR: No $p/ver$DB_CONFIG_VER/load.sql file"
+#	exit 1
+#fi
+#echo "source $p/ver$DB_CONFIG_VER/load.sql;" >> $LS
+#if [ -f $p/ver$DB_CONFIG_VER/load_$DB_CONFIG_ENVIRONMENT.sql ]; then
+#    echo " ...found load file for $DB_CONFIG_ENVIRONMENT."
+#    echo "source $p/ver$DB_CONFIG_VER/load_$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
+#fi
 echo " ...done"
 
 echo ""
 echo "Run import script"
 echo "---------------------------------------------------------------------"
-mysql --defaults-file=$p/.my.cnf < $LS
+#echo " here, cd first to directory DB_CONFIG_DBDIR and then fix the .rebuild.sql file to not cd"
+#echo "  :: $p/$DB_CONFIG_DBDIR :: $LS"
+cd $DB_CONFIG_DBDIR ; mysql --defaults-file=$p/.my.cnf < $LS
 if [ $? == 0 ]; then
 	echo " ...SUCCESS!"
 	echo 
-	echo " ... successfully created database $DBNAME"
+	echo " ... successfully created database $DB_CONFIG_DBNAME"
 	echo 
 else
 	echo "ERROR: failed importing the script"

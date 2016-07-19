@@ -1,0 +1,117 @@
+#!/bin/bash
+
+
+ErrorOut() {
+    retval=1
+    echo "ERROR: .... stuff"
+    echo "   $*"
+    DisplayOptions $0
+}
+
+DisplayOptions() {
+	echo "Usage: "`basename $0`" [-q] [environment version]"
+	echo "---------------------------------------------------------------------"
+	echo "  Saves current database to a file in dumps directory. Defaults to "
+	echo "  configuration, but can set environment and version information."
+	echo "     ex. $0 development 4  equates to "$APPNAME"_development_4."
+    echo
+	echo "   -q : quiet... don't print stuff."
+	echo
+}
+
+
+# Load settings
+cwd=`pwd`"/."
+p=`dirname $cwd`
+#source $p/_dbsettings
+
+# Handle command line, and import config.conf
+silent=0
+sys=""
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" -o "$1" == "--help" ]; then
+        DisplayOptions $*
+    elif [ "$1" == "-q" -o "$1" == "--quiet" ]; then
+        silent=1
+        unset WATERCUFFSYS_SHOW
+        # NOTE: need to not call WATERCUFFSYS, but the parent variable name, or use command line arguments
+        shift 
+#    elif [ "$1" == "-s" -o "$1" == "--sys" ]; then
+#        shift 
+#        sys="$1"
+    else
+        echo "ERROR: unknown argument '$1'"
+        ErrorOut
+    fi
+    shift
+done
+
+
+if [ $# == 2 ]; then
+    export WATERCUFFSYS_ENV=$1
+    export WATERCUFFSYS_VER=$2
+fi
+
+. db_config $sys --
+
+#source $p/config.conf
+#source /usr/local/bin/db_config.conf
+#if [ $? != 0 ]; then
+#	echo "ERROR: no 'config.conf' file. Are you calling from the wrong directory?"
+#	exit 1
+#fi
+
+
+D=`date +%Y_%m_%d_%H_%M_%S`
+DUMPF="$DB_CONFIG_DBDIR""/dumps/dump_$D.sql"
+
+# ensure dumps directory exists
+if [ ! -e "$DB_CONFIG_DBDIR""/dumps" ]; then
+    mkdir "$DB_CONFIG_DBDIR""/dumps"
+fi
+
+
+#if [ $# == 2 ]; then
+#    DB_CONFIG_ENVIRONMENT=$1
+#    DB_CONFIG_VER=$2
+#    DB_CONFIG_DBNAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+#fi
+
+hostname=`hostname -f`
+
+if [ $silent != 1 ]; then
+
+	echo ""
+	echo " Settings..."
+	echo "---------------------------------------------------------------------"
+	echo "   DBVER : $DB_CONFIG_VER"
+	echo "  DBNAME : $DB_CONFIG_DBNAME"
+	echo "    dump : $DUMPF"
+	echo " hostname: $hostname"
+	echo ""
+fi
+
+
+echo "-- ---------------------------------------------------------------------" > $DUMPF
+echo "--  db_saveall : $0 $*" >> $DUMPF
+echo "--          on : $D" >> $DUMPF
+echo "--       DBVER : $DB_CONFIG_VER" >> $DUMPF
+echo "--      DBNAME : $DB_CONFIG_DBNAME" >> $DUMPF
+echo "--     hostname: $hostname" >> $DUMPF
+echo "-- ---------------------------------------------------------------------" >> $DUMPF
+echo "" >> $DUMPF
+
+
+#echo "mysqldump '$DB_CONFIG_DBNAME'  file '$DUMPF'"
+mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME >> $DUMPF
+if [ $? == 0 ]; then
+	if [ $silent != 1 ]; then
+		echo "Success: Created $DUMPF"
+	fi
+else 
+	if [ $silent != 1 ]; then
+		echo "Failed"
+		exit 1
+	fi
+fi
+

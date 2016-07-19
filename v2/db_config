@@ -1,0 +1,126 @@
+#!/bin/bash
+
+function DisplayOptions 
+{
+    echo 
+    echo "Usage: "`basename $0`" (-s sys) (-e env) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
+    echo
+    echo "       sets environment for db package scripts."
+    echo
+    echo "    root     - The root global variable to look for environment variables."
+    echo "                 ex. WATERCUFFSYS"
+    echo "    conffile - The location of the config.conf file."
+    echo "             - Defaults to current directory, then prev, then prev, then error."
+    echo "               NOTE: not implemented"
+    echo "    sys      - 'lcom','ccom' - local or cloud system"
+    echo "    env      - development environment 'test','dev','live'"
+    echo
+    exit $1
+}
+
+
+# Load settings
+cwd=`pwd`"/."
+p=`dirname $cwd`
+conffile="/config.conf"
+verbose=0
+root=''         # overwrites CONFIGBASE if supplied
+sys=''
+env=''
+
+# Handle command line arguments
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+        DisplayOptions 0
+    elif [ "$1" == "-v" ] || [ "$1" == "--verbose" ]; then
+        verbose=1
+    elif [ "$1" == "-r" ] || [ "$1" == "--root" ]; then
+        shift
+        root="$1"
+    elif [ "$1" == "-s" ] || [ "$1" == "--system" ]; then
+        shift
+        sys="$1"
+        if [  ! [ "$sys" == "lcom" -o "$sys" == "ccom" ] ]; then
+            echo "Bad system '$sys'."
+            DisplayOptions 1
+            exit 1
+        fi
+    elif [ "$1" == "-e" ] || [ "$1" == "--env" ]; then
+        shift
+        env="$1"
+        if [  ! [ "$env" == "dev" -o "$env" == "test" -o "$env" == 'live' ] ]; then
+            echo "Bad environment '$env'."
+            DisplayOptions 1
+            exit 1
+        fi
+    elif [ "$1" == "-c" ] || [ "$1" == "--configfile" ]; then
+        shift
+        conffile="$1"
+        p=""
+    fi
+    shift
+done
+
+
+if [ "$p" == "" ]; then
+    #echo "try: $p/$conffile"
+    source "$p/$conffile"
+    srcres=$?
+elif [ -f "$p/$conffile" ]; then 
+    source "$p/$conffile"
+    srcres=$?
+else 
+    conffile="../$conffile"
+    if [ -f "$p/$conffile" ]; then 
+#        echo "try: $p/$conffile"
+        source "$p/$conffile"
+        srcres=$?
+    else
+        conffile="../$conffile"
+        if [ -f "$p/$conffile" ]; then 
+#            echo "try: $p/$conffile"
+            source "$p/$conffile"
+            srcres=$?
+        else
+            echo "ERROR: no 'config.conf' file. Are you calling from the wrong directory?"
+            exit 1
+        fi
+    fi
+fi
+#echo "read $p/$conffile"
+
+if [ "$srcres" != "0" ]; then
+    echo "ERROR: error reading  '$p/$conffile' file."
+    exit 1
+fi
+
+# Use command line root variable if supplied
+if [ "$root" != "" ]; then
+    export CONFIGBASE="$root"
+fi
+
+
+if [ ! -n "${CONFIGBASE+1}" ]; then echo "ERROR: CONFIGBASE env variable is not set for config.conf file."; exit 1; fi
+if [ "$CONFIGBASE" == "" ]; then echo "ERROR: CONFIGBASE env variable is empty."; exit 1; fi
+
+export CONFIGBASE 
+
+if [ "$verbose" == "1" ]; then 
+    export ${CONFIGBASE}_SHOW=1
+fi
+if [ "$sys" != "" ]; then
+    export ${CONFIGBASE}_SYS="$sys"
+fi
+if [ "$env" != "" ]; then
+    export ${CONFIGBASE}_ENV="$env"
+fi
+
+source /usr/local/etc/db/config.master.conf
+if [ $? != 0 ]; then
+    echo "ERROR: no '/usr/local/etc/db/config.master.conf' file installed. Bad installation??"
+    exit 1
+fi
+
+
+
+
