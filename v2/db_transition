@@ -38,12 +38,16 @@ p=`dirname $cwd`
 #fi
 
 sys=""
+env=""
 
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
     if [ "$1" == "-h" -o "$1" == "--help" ]; then
         DisplayOptions $*
     elif [ "$1" == "-f" -o "$1" == "--force" ]; then
         isforced=1
+    elif [ "$1" == "--env" ]; then
+        shift
+        env="--env $1"
     elif [ "$1" == "-s" -o "$1" == "--sys" ]; then
         shift
         sys="-s $1"
@@ -54,7 +58,7 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     shift
 done
 
-. db_config $sys --
+. db_config $sys $env --
 
 # Defines
 LS="$p/.rebuild.sql"

@@ -3,7 +3,7 @@
 function DisplayOptions 
 {
     echo 
-    echo "Usage: "`basename $0`" (-s sys) (-e env) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
+    echo "Usage: "`basename $0`" (-s sys) (--env env) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
     echo
     echo "       sets environment for db package scripts."
     echo
@@ -45,14 +45,17 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
             DisplayOptions 1
             exit 1
         fi
-    elif [ "$1" == "-e" ] || [ "$1" == "--env" ]; then
+    elif [ "$1" == "--env" ]; then
         shift
         env="$1"
-        if [  ! [ "$env" == "dev" -o "$env" == "test" -o "$env" == 'live' ] ]; then
+        if [ "$env" == "dev" ] || [ "$env" == "test" ] || [ "$env" == "live" ]; then
+            a=1
+        else
             echo "Bad environment '$env'."
             DisplayOptions 1
             exit 1
         fi
+        #echo " env $env"
     elif [ "$1" == "-c" ] || [ "$1" == "--configfile" ]; then
         shift
         conffile="$1"
