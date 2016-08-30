@@ -110,7 +110,7 @@ if [ $? == 0 ]; then
 	fi
 else 
 	if [ $silent != 1 ]; then
-		echo "Failed"
+		echo "Failed. Access issues?"
 		exit 1
 	fi
 fi
