@@ -39,6 +39,7 @@ p=`dirname $cwd`
 
 sys=""
 env=""
+lsid=""
 
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
     if [ "$1" == "-h" -o "$1" == "--help" ]; then
@@ -50,7 +51,10 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
         env="--env $1"
     elif [ "$1" == "-s" -o "$1" == "--sys" ]; then
         shift
-        sys="-s $1"
+        sys="--sys $1"
+    elif [ "$1" == "--lsid" ]; then
+        shift
+        lsid="--lsid $1"
     else
         echo "ERROR: unknown argument '$1'"
         ErrorOut
@@ -58,12 +62,17 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     shift
 done
 
-. db_config $sys $env --
+. db_config $sys $env $lsid --
 
 # Defines
 LS="$p/.rebuild.sql"
 OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
-OLDDBNAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+
+if [ "$DB_CONFIG_SYS" == 'lcom' ] || [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
+    OLDDBNAME=$(ComputeLDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER $DB_CONFIG_LSID)
+else
+    OLDDBNAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+fi
 #echo "OLDDBNAME $OLDDBNAME $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER"
 #OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
 #OLDDBNAME=$(ComputeDBName $APPNAME $DB_CONFIG_ENVIRONMENT $OLDDBVER)
@@ -148,8 +157,10 @@ else
 		echo ""
 		exit 1
 	fi
-	latestdump=`ls -tra $p/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
-	echo "    : success, file: $latestdump"
+	#latestdump=`ls -tra $p/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
+    #latestdump=`ls -tra $DB_CONFIG_DBDIR/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
+    latestdump=$(<.lastdb_saveall)
+	echo "    : success, using dump file: $latestdump"
 	echo ""
 
 

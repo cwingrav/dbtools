@@ -3,7 +3,7 @@
 function DisplayOptions 
 {
     echo 
-    echo "Usage: "`basename $0`" (-s sys) (--env env) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
+    echo "Usage: "`basename $0`" (-s|--sys sys) (--env env) (--lsid lsid) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
     echo
     echo "       sets environment for db package scripts."
     echo
@@ -14,6 +14,7 @@ function DisplayOptions
     echo "               NOTE: not implemented"
     echo "    sys      - 'lcom','ccom' - local or cloud system"
     echo "    env      - development environment 'test','dev','live'"
+    echo "    lsid     - local system identifier"
     echo
     exit $1
 }
@@ -27,6 +28,7 @@ verbose=0
 root=''         # overwrites CONFIGBASE if supplied
 sys=''
 env=''
+lsid=''
 
 # Handle command line arguments
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
@@ -37,10 +39,15 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     elif [ "$1" == "-r" ] || [ "$1" == "--root" ]; then
         shift
         root="$1"
-    elif [ "$1" == "-s" ] || [ "$1" == "--system" ]; then
+    elif [ "$1" == "--lsid" ]; then
+        shift
+        lsid="$1"
+    elif [ "$1" == "-s" ] || [ "$1" == "--sys" ]; then
         shift
         sys="$1"
-        if [  ! [ "$sys" == "lcom" -o "$sys" == "ccom" ] ]; then
+        if [  "$sys" == "lcom" ] || [ "$sys" == "ccom" ] || [  "$sys" == "LCOM" ] || [ "$sys" == "CCOM" ]; then
+            a=1
+        else
             echo "Bad system '$sys'."
             DisplayOptions 1
             exit 1
@@ -116,6 +123,9 @@ if [ "$sys" != "" ]; then
 fi
 if [ "$env" != "" ]; then
     export ${CONFIGBASE}_ENV="$env"
+fi
+if [ "$lsid" != "" ]; then
+    export ${CONFIGBASE}_LSID="$lsid"
 fi
 
 source /usr/local/etc/db/config.master.conf

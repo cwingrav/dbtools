@@ -2,6 +2,15 @@
 
 Useful things for managing databases with projects and across different development platforms. Uses a 'config.ini' file to store settings for things like databases, system state (dev, testing, live, etc) and software version numbers.
 
+## How To
+
+1. Create a Database
+
+2. Recreate a Database
+
+3. Open A MySQL Console
+* type **db_mstart**
+
 ## Scripts
 
 * **db_createuser**: Creates a new user for the databases needed for this project. Also creates an empty database and assigns privileges for the user. NOTE: a .my.cnf file is created that stores your mysql password in clear text.
@@ -13,7 +22,7 @@ Useful things for managing databases with projects and across different developm
 
 ## Setup:
 1. Create a config.ini file in your project's main directory.
-1. Create a director 'db' and put a file _dbsettings in it. 
+1. Create a directory 'db' and put a file _dbsettings in it. 
 1. Create a directory 'db/ver1' and put a 'load.sql' file.
 
 ### config.ini

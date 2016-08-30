@@ -115,3 +115,4 @@ else
 	fi
 fi
 
+echo "$DUMPF" > .lastdb_saveall
