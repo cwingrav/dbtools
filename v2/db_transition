@@ -118,7 +118,8 @@ if [ $DB_CONFIG_VER == 1 ]; then
 	else
     read isready
 	fi
-	if [ ! \($isready == "Y" -o $isready == "y"\) ]; then
+    echo $isready
+	if ! [ "$isready" == "Y" -o "$isready" == "y" ] ; then
 		echo ""
 		echo "... EXITING"
 		echo ""
@@ -136,8 +137,9 @@ else
 	if [ $isforced == 1 ]; then 
 		isready='Y'
 	else
-    read isready
+        read isready
 	fi
+    echo $isready
 	if ! [ "$isready" == "Y" -o "$isready" == "y" ] ; then
 		echo ""
 		echo "... EXITING"
@@ -179,8 +181,8 @@ mysql --defaults-file=$p/.my.cnf < $LS
 if [ $? != 0 ]; then
 	echo ""
 	echo "FAILED building database... wrong password?";
-	echo " ...Or, 1st time run, user needs access to create/drop. Run this as root:"
-	echo "   'grant all privileges on \`"$DB_CONFIG_DBNAME"\`.* to \`$DBUSER\`@\`localhost\`;"
+    echo " ...Or, 1st time run, user needs access to create/drop. Run this as root: (mysql -u root -p)"
+	echo "   grant all privileges on \`"$DB_CONFIG_DBNAME"\`.* to \`$DB_CONFIG_USER\`@\`localhost\`;"
 	echo ""
 	exit 1
 fi
