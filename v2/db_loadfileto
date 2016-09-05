@@ -1,0 +1,83 @@
+#!/bin/bash
+
+
+ErrorOut() {
+    retval=1
+    echo "ERROR: .... stuff"
+    echo "   $*"
+    DisplayOptions $0
+}
+
+DisplayOptions() {
+    echo "Usage : "`basename $0`" [environment] [version] [sqlfile]"
+    echo "---------------------------------------------------------------------"
+    echo "  Loads sqlfile into the database with this environment and version."
+    echo
+}
+
+
+
+# --------------------------------------------------------------------- 
+# Handle command line, and import config.conf
+# --------------------------------------------------------------------- 
+silent=0
+sys=""
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" -o "$1" == "--help" ]; then
+        DisplayOptions $*
+    elif [ "$1" == "-q" -o "$1" == "--quiet" ]; then
+        silent=1
+        unset WATERCUFFSYS_SHOW
+        # NOTE: need to not call WATERCUFFSYS, but the parent variable name, or use command line arguments
+        shift
+    else
+        echo "ERROR: unknown argument '$1'"
+        ErrorOut
+    fi
+    shift
+done
+
+if [ $# -ne 3 ]; then
+    echo "ERROR: Bad arguments"
+    ErrorOut
+fi
+
+export WATERCUFFSYS_ENV=$1
+export WATERCUFFSYS_VER=$2
+. db_config $sys --
+
+dbsqlfile=$3
+
+if [ ! -e "$dbsqlfile" ]; then
+	echo "ERROR: $dbsqlfile file not found!"
+	echo ""
+	exit 1
+fi
+
+echo ""
+echo " Reading mysql file into..."
+echo "---------------------------------------------------------------------"
+echo "   DBVER : $DB_CONFIG_VER"
+echo "  DBNAME : $DB_CONFIG_DBNAME"
+echo "    FILE : $dbsqlfile"
+echo ""
+
+echo "mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME < $dbsqlfile"
+mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME < $dbsqlfile
+if [ $? -ne 0 ]; then
+	echo ""
+	echo "ERROR in mysql";
+	echo ""
+	exit 1
+fi
+
+echo ""
+echo "---------------------------------------------------------------------"
+if [ $? -eq 0 ]; then
+	echo " ... successfully read file '$dbsqlfile' to $DB_CONFIG_DBNAME."
+	echo ""
+else
+	echo "ERROR: failed"
+	echo ""
+	exit 1
+fi
