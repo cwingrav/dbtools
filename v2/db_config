@@ -71,7 +71,6 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     shift
 done
 
-
 if [ "$p" == "" ]; then
     #echo "try: $p/$conffile"
     source "$p/$conffile"
@@ -116,6 +115,7 @@ if [ "$CONFIGBASE" == "" ]; then echo "ERROR: CONFIGBASE env variable is empty."
 export CONFIGBASE 
 
 if [ "$verbose" == "1" ]; then 
+    echo "setting show to 1"
     export ${CONFIGBASE}_SHOW=1
 fi
 if [ "$sys" != "" ]; then
@@ -127,6 +127,7 @@ fi
 if [ "$lsid" != "" ]; then
     export ${CONFIGBASE}_LSID="$lsid"
 fi
+
 
 source /usr/local/etc/db/config.master.conf
 if [ $? != 0 ]; then
