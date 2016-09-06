@@ -9,11 +9,12 @@ ErrorOut() {
 }
 
 DisplayOptions() {
-	echo "Usage: "`basename $0`" [-q] [environment] [version] [table ...]"
+	echo "Usage: "`basename $0`" [-q] [environment] [version] [table] (where)"
 	echo "---------------------------------------------------------------------"
 	echo "  Saves current database to a file in dumps directory. Defaults to "
 	echo "  configuration, but can set environment and version information."
-	echo "     ex. '$0 development 4  FlowData' exports to "$APPNAME"_development_4's FlowData table"
+	echo "     ex. $0 development 4 FlowData     exports to "$APPNAME"_development_4's FlowData table"
+	echo "     ex. $0 development 4 FlowData \"user='jimf'\"    exports to "$APPNAME"_development_4's FlowData table with the given where condition"
     echo
 	echo "   -q : quiet... don't print stuff."
 	echo
@@ -68,9 +69,14 @@ fi
 . db_config $sys --
 
 # --------------------------------------------------------------------- 
-# Set TABLES var
+# Set TABLE var
+# Set WHERE var
 # --------------------------------------------------------------------- 
-export TABLES=$*
+export TABLE=$1
+export WHERE=""
+if [ $# -gt 1 ]; then
+    export WHERE="--where=$2"
+fi
 
 D=`date +%Y_%m_%d_%H_%M_%S`
 hostname=`hostname -f`
@@ -82,14 +88,16 @@ if [ $silent != 1 ]; then
 	echo "---------------------------------------------------------------------"
 	echo "   DBVER : $DB_CONFIG_VER"
 	echo "  DBNAME : $DB_CONFIG_DBNAME"
-    echo "  TABLES : $TABLES"
+    echo "   TABLE : $TABLE"
+    echo "   WHERE : $WHERE"
 	echo " hostname: $hostname"
 	echo ""
 fi
 
 
 echo "-- ---------------------------------------------------------------------"
-echo "--  db_savetable : $TABLES"
+echo "--  db_savetable : $TABLE"
+echo "--         where : $WHERE"
 echo "--            on : $D"
 echo "--         DBVER : $DB_CONFIG_VER"
 echo "--        DBNAME : $DB_CONFIG_DBNAME"
@@ -98,11 +106,12 @@ echo "-- ---------------------------------------------------------------------"
 echo ""
 
 
-#echo "mysqldump '$DB_CONFIG_DBNAME'  file '$DUMPF'"
-mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME $TABLES
+#echo "mysqldump --defaults-file=./.my.cnf $WHERE $DB_CONFIG_DBNAME $TABLE"
+mysqldump --defaults-file=./.my.cnf $WHERE $DB_CONFIG_DBNAME $TABLE
+#mysqldump --defaults-file=./.my.cnf --where="id>10000" $DB_CONFIG_DBNAME $TABLE
 if [ $? == 0 ]; then
 	if [ $silent != 1 ]; then
-		echo "SuccessF"
+		echo "Success"
 	fi
 else 
 	if [ $silent != 1 ]; then
