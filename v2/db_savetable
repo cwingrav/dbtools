@@ -36,6 +36,7 @@ sys=""
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
     if [ "$1" == "-h" -o "$1" == "--help" ]; then
         DisplayOptions $*
+        exit 0
     elif [ "$1" == "-q" -o "$1" == "--quiet" ]; then
         silent=1
         unset WATERCUFFSYS_SHOW
