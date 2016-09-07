@@ -2,10 +2,11 @@
 
 
 ErrorOut() {
-    retval=1
-    echo "ERROR: .... stuff"
-    echo "   $*"
+    echo 
+    echo "ERROR: $*"
+    echo 
     DisplayOptions $0
+    exit 1
 }
 
 DisplayOptions() {
@@ -51,8 +52,7 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
 done
 
 if [ $# -le 2 ]; then
-    echo "ERROR: Bad arguments"
-    ErrorOut
+    ErrorOut "Bad arguments"
 fi
 
 
