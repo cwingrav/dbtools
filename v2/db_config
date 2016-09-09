@@ -75,6 +75,9 @@ if [ "$p" == "" ]; then
     #echo "try: $p/$conffile"
     source "$p/$conffile"
     srcres=$?
+elif [ "$p" == "/" ]; then
+    echo "Daemon Mode: Using CONFIGBASE of $CONFIGBASE"
+    srcres=0
 elif [ -f "$p/$conffile" ]; then 
     source "$p/$conffile"
     srcres=$?
