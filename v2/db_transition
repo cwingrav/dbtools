@@ -73,6 +73,7 @@ done
 
 # Defines
 LS="$p/.rebuild.sql"
+echo "LS: $LS"
 OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
 
 if [ "$DB_CONFIG_SYS" == 'lcom' ] || [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
@@ -167,7 +168,7 @@ else
 		echo ""
 
         # ensure that the database exists! i.e. on first call to a new version
-        mysql --defaults-file=$p/.my.cnf -e "CREATE DATABASE IF NOT EXISTS $DB_CONFIG_DBNAME;"
+        mysql --defaults-file=$DB_CONFIG_MYSQLMY -e "CREATE DATABASE IF NOT EXISTS $DB_CONFIG_DBNAME;"
         echo $?
         db_access --ver $DB_CONFIG_VER $sys
         if [ "$?" != "0" ]; then
@@ -200,7 +201,7 @@ echo "drop database if exists $DB_CONFIG_DBNAME;" >> $LS
 echo "create database $DB_CONFIG_DBNAME;" >> $LS 
 #echo "grant all privileges on $DB_CONFIG_DBNAME.* to $APPNAME@localhost;" >> $LS 
 #mysql -u root -p < $LS
-mysql --defaults-file=$p/.my.cnf < $LS
+mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS
 if [ "$?" != "0" ]; then
 	echo ""
 	echo ""
@@ -236,7 +237,7 @@ if [ "$?" != "0" ]; then
         echo "... created user and granted privileges, trying to build database again..."
         echo ""
     fi
-    mysql --defaults-file=$p/.my.cnf < $LS
+    mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS
     if [ "$?" != "0" ]; then
         echo ""
         echo "ERROR: Failed. Bummer."
@@ -286,7 +287,7 @@ echo "Run import script"
 echo "---------------------------------------------------------------------"
 #echo " here, cd first to directory DB_CONFIG_DBDIR and then fix the .rebuild.sql file to not cd"
 #echo "  :: $p/$DB_CONFIG_DBDIR :: $LS"
-cd $DB_CONFIG_DBDIR ; mysql --defaults-file=$p/.my.cnf < $LS
+cd $DB_CONFIG_DBDIR ; mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS
 if [ $? == 0 ]; then
 	echo " ...SUCCESS!"
 	echo 

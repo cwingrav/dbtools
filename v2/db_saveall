@@ -105,7 +105,7 @@ echo "" >> $DUMPF
 
 
 #echo "mysqldump '$DB_CONFIG_DBNAME'  file '$DUMPF'"
-mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME >> $DUMPF
+mysqldump --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME >> $DUMPF
 ee=$?
 if [ "$ee" == "0" ]; then
 	if [ $silent != 1 ]; then
@@ -124,7 +124,7 @@ else
 #        else
 #            echo "corrected. retrying "
 #        fi
-#        mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME >> $DUMPF
+#        mysqldump --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME >> $DUMPF
 #        if [ "$?" != "0" ]; then
 #            echo "... still failing "
 #            exit 1

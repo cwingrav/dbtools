@@ -1,11 +1,9 @@
 #!/bin/bash
 
 # Load settings
+cwd=`pwd`"/."
 p=`dirname $cwd`
 
-if [ "$p" == "" ] ; then
-    p="."
-fi
 LS1="$p/.rebuild1.sql"
 #echo "p   : $p"
 #echo "LS1 : $LS1"
@@ -63,7 +61,7 @@ done
 # FLUSH PRIVILEGES;
 
 # get password from .my.cnf file
-upwd=`eval "php -r 'echo parse_ini_file("'"'$p/.my.cnf'"'",true)["'"'"client"'"'"]["'"'"password"'"'"]"";'"`
+upwd=`eval "php -r 'echo parse_ini_file("'"'$DB_CONFIG_MYSQLMY'"'",true)["'"'"client"'"'"]["'"'"password"'"'"]"";'"`
 #echo "yser pswd $upwd"
 
 echo "CREATE USER IF NOT EXISTS \`$DB_CONFIG_USER\`@'localhost' IDENTIFIED BY '$upwd';" > $LS1

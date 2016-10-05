@@ -107,9 +107,9 @@ echo "-- ---------------------------------------------------------------------"
 echo ""
 
 
-#echo "mysqldump --defaults-file=./.my.cnf $WHERE $DB_CONFIG_DBNAME $TABLE"
-mysqldump --defaults-file=./.my.cnf $WHERE $DB_CONFIG_DBNAME $TABLE
-#mysqldump --defaults-file=./.my.cnf --where="id>10000" $DB_CONFIG_DBNAME $TABLE
+#echo "mysqldump --defaults-file=$DB_CONFIG_MYSQLMY $WHERE $DB_CONFIG_DBNAME $TABLE"
+mysqldump --defaults-file=$DB_CONFIG_MYSQLMY $WHERE $DB_CONFIG_DBNAME $TABLE
+#mysqldump --defaults-file=$DB_CONFIG_MYSQLMY --where="id>10000" $DB_CONFIG_DBNAME $TABLE
 if [ $? == 0 ]; then
 	if [ $silent != 1 ]; then
 		echo "Success"

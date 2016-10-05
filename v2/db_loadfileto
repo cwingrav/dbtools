@@ -62,8 +62,8 @@ echo "  DBNAME : $DB_CONFIG_DBNAME"
 echo "    FILE : $dbsqlfile"
 echo ""
 
-echo "mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME < $dbsqlfile"
-mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME < $dbsqlfile
+echo "mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME < $dbsqlfile"
+mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME < $dbsqlfile
 if [ $? -ne 0 ]; then
 	echo ""
 	echo "ERROR in mysql";

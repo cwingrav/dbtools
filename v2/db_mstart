@@ -39,7 +39,7 @@ fi
 echo ""
 echo "Joining MySQL database '$DB_CONFIG_DBNAME'"
 echo ""
-mysql --defaults-file=./.my.cnf $DB_CONFIG_DBNAME
+mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME
 set retval=$?
 exit $retval
 
