@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Load settings
+p=`dirname $cwd`
+
+if [ "$p" == "" ] ; then
+    p="."
+fi
+LS1="$p/.rebuild1.sql"
+#echo "p   : $p"
+#echo "LS1 : $LS1"
+
+sys=''
+env=''
+lsid=''
+ver=''
+
+DisplayOptions() {
+    echo ""
+    echo "Usage: "`basename $0`" [-f]"
+    echo "---------------------------------------------------------------------"
+    echo "  Gives users access to a newly created database"
+    echo ""
+    echo "     -h/--help - this help message"
+    echo "    --env X    - set environment, ex. 'dev','live','test'"
+    echo "    --sys X    - set system to use, ex. 'LCOM','SERVER','CCOM'"
+    echo "    --ver X    - change default version number, i.e. '1' if system is set to '3'"
+	echo "    --lsid X   - local system identifier"
+    echo ""
+}
+
+while [ "`echo $1 | cut -c 1`" == "-" ]; do
+    if [ "$1" == "-h" -o "$1" == "--help" ]; then
+        DisplayOptions $*
+    elif [ "$1" == "-f" -o "$1" == "--force" ]; then
+        isforced=1
+    elif [ "$1" == "--env" ]; then
+        shift
+        env="--env $1"
+    elif [ "$1" == "-s" -o "$1" == "--sys" ]; then
+        shift
+        sys="--sys $1"
+    elif [ "$1" == "--lsid" ]; then
+        shift
+        lsid="--lsid $1"
+    elif [ "$1" == "--ver" ]; then
+        shift
+        ver="--ver $1"
+    else
+        echo "ERROR: unknown argument '$1'"
+        DisplayOptions $*
+        exit 1
+    fi
+    shift
+done
+
+. db_config $sys $env $lsid $ver --
+
+
+# Clear user info for testing
+# REVOKE ALL PRIVILEGES on microtemp_SERVER_dev_1.* FROM cwingrav_microt@localhost;
+# DROP USER 'cwingrav_microt'@localhost;
+# FLUSH PRIVILEGES;
+
+# get password from .my.cnf file
+upwd=`eval "php -r 'echo parse_ini_file("'"'$p/.my.cnf'"'",true)["'"'"client"'"'"]["'"'"password"'"'"]"";'"`
+#echo "yser pswd $upwd"
+
+echo "CREATE USER IF NOT EXISTS \`$DB_CONFIG_USER\`@'localhost' IDENTIFIED BY '$upwd';" > $LS1
+echo "grant all privileges on \`"$DB_CONFIG_DBNAME"\`.* to \`$DB_CONFIG_USER\`@\`localhost\`;" >> $LS1
+echo "FLUSH PRIVILEGES;" >> $LS1
+mysql -u root -p < $LS1
+
+echo "LS1"
+cat $LS1
+
+if [ "$?" != "0" ]; then
+	rm -f $LS1
+    echo ""
+    echo "ERROR: Failed trying to correct. Bummer. Did you use the correct Database root password (i.e. NOT your system's root password)"
+    echo ""
+    exit 1
+else
+	rm -f $LS1
+    echo ""
+    echo "... success"
+fi
+

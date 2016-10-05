@@ -3,7 +3,7 @@
 function DisplayOptions 
 {
     echo 
-    echo "Usage: "`basename $0`" (-s|--sys sys) (--env env) (--lsid lsid) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE)"
+    echo "Usage: "`basename $0`" (-s|--sys sys) (--env env) (--lsid lsid) (-h|--help) (-v|--verbose) (-c|--configfile conffile) (-r|--root ENVVARIABLE) (--ver num)"
     echo
     echo "       sets environment for db package scripts."
     echo
@@ -15,6 +15,7 @@ function DisplayOptions
     echo "    sys      - 'lcom','ccom' - local or cloud system"
     echo "    env      - development environment 'test','dev','live'"
     echo "    lsid     - local system identifier"
+    echo "    ver      - change the version number to X"
     echo
     exit $1
 }
@@ -29,6 +30,7 @@ root=''         # overwrites CONFIGBASE if supplied
 sys=''
 env=''
 lsid=''
+ver=''
 
 # Handle command line arguments
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
@@ -42,6 +44,9 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     elif [ "$1" == "--lsid" ]; then
         shift
         lsid="$1"
+    elif [ "$1" == "--ver" ]; then
+        shift
+        ver="$1"
     elif [ "$1" == "-s" ] || [ "$1" == "--sys" ]; then
         shift
         sys="$1"
@@ -129,6 +134,9 @@ if [ "$env" != "" ]; then
 fi
 if [ "$lsid" != "" ]; then
     export ${CONFIGBASE}_LSID="$lsid"
+fi
+if [ "$ver" != "" ]; then
+    export ${CONFIGBASE}_VER="$ver"
 fi
 
 

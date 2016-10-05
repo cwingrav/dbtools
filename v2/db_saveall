@@ -47,12 +47,14 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
 done
 
 
+env=""
+ver=""
 if [ $# == 2 ]; then
-    export WATERCUFFSYS_ENV=$1
-    export WATERCUFFSYS_VER=$2
+    env="--env $1"
+    ver="--ver $2"
 fi
 
-. db_config $sys --
+. db_config $sys $ver $env --
 
 #source $p/config.conf
 #source /usr/local/bin/db_config.conf
@@ -104,15 +106,31 @@ echo "" >> $DUMPF
 
 #echo "mysqldump '$DB_CONFIG_DBNAME'  file '$DUMPF'"
 mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME >> $DUMPF
-if [ $? == 0 ]; then
+ee=$?
+if [ "$ee" == "0" ]; then
 	if [ $silent != 1 ]; then
 		echo "Success: Created $DUMPF"
 	fi
 else 
 	if [ $silent != 1 ]; then
-		echo "Failed. Access issues?"
-		exit 1
+        echo "Failed... no database? $ee"
+#		echo "Failed. Access issues?"
+#        echo ""
+#        echo "Attempting to correct"
+#        db_access --ver $DB_CONFIG_VER $sys
+#        if [ "$?" != "0" ]; then
+#            echo "...failed to correct"
+#            exit 1
+#        else
+#            echo "corrected. retrying "
+#        fi
+#        mysqldump --defaults-file=./.my.cnf $DB_CONFIG_DBNAME >> $DUMPF
+#        if [ "$?" != "0" ]; then
+#            echo "... still failing "
+#            exit 1
+#        fi
 	fi
+    exit 1
 fi
 
 echo "$DUMPF" > .lastdb_saveall

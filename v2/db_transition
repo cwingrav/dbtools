@@ -19,6 +19,9 @@ DisplayOptions() {
     echo ""
     echo "    -f/--force - force 'yes' response to continue"
     echo "     -h/--help - this help message"
+    echo "    --env X    - set environment, ex. 'dev','live','test'"
+    echo "    --sys X    - set system to use, ex. 'LCOM','SERVER','CCOM'"
+    echo "    --ver X    - change default version number, i.e. '1' if system is set to '3'"
     echo ""
     exit $retval
 }
@@ -40,6 +43,7 @@ p=`dirname $cwd`
 sys=""
 env=""
 lsid=""
+ver=""
 
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
     if [ "$1" == "-h" -o "$1" == "--help" ]; then
@@ -55,6 +59,9 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     elif [ "$1" == "--lsid" ]; then
         shift
         lsid="--lsid $1"
+    elif [ "$1" == "--ver" ]; then
+        shift
+        ver="--ver $1"
     else
         echo "ERROR: unknown argument '$1'"
         ErrorOut
@@ -62,7 +69,7 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     shift
 done
 
-. db_config $sys $env $lsid --
+. db_config $sys $env $lsid $ver --
 
 # Defines
 LS="$p/.rebuild.sql"
@@ -148,6 +155,7 @@ else
 	fi
 
 
+
 	echo ""
 	echo ""
 	echo "Save $OLDDBNAME to file."
@@ -155,9 +163,24 @@ else
     echo " db_saveall -q $DB_CONFIG_ENVIRONMENT $OLDDBVER"
 	db_saveall  $DB_CONFIG_ENVIRONMENT $OLDDBVER
 	if [ $? != 0 ]; then
-		echo " : failed. exiting now."
+		echo " : failed. trying to fix."
 		echo ""
-		exit 1
+
+        # ensure that the database exists! i.e. on first call to a new version
+        mysql --defaults-file=$p/.my.cnf -e "CREATE DATABASE IF NOT EXISTS $DB_CONFIG_DBNAME;"
+        echo $?
+        db_access --ver $DB_CONFIG_VER $sys
+        if [ "$?" != "0" ]; then
+            echo "...failed to correct"
+            exit 1
+        else
+            echo "corrected. retrying "
+        fi
+        db_saveall  $DB_CONFIG_ENVIRONMENT $OLDDBVER
+        if [ $? != 0 ]; then
+            echo " : failed again. bummer."
+            exit 1
+        fi
 	fi
 	#latestdump=`ls -tra $p/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
     #latestdump=`ls -tra $DB_CONFIG_DBDIR/dumps/dump_20[0-9][0-9]_*.sql | tail -n 1`
@@ -170,7 +193,7 @@ fi
 
 echo ""
 echo ""
-echo "Build new db (requires mysql root password)"
+echo "Build new db"
 echo "---------------------------------------------------------------------"
 echo "" > $LS
 echo "drop database if exists $DB_CONFIG_DBNAME;" >> $LS
@@ -178,13 +201,52 @@ echo "create database $DB_CONFIG_DBNAME;" >> $LS
 #echo "grant all privileges on $DB_CONFIG_DBNAME.* to $APPNAME@localhost;" >> $LS 
 #mysql -u root -p < $LS
 mysql --defaults-file=$p/.my.cnf < $LS
-if [ $? != 0 ]; then
+if [ "$?" != "0" ]; then
 	echo ""
-	echo "FAILED building database... wrong password?";
-    echo " ...Or, 1st time run, user needs access to create/drop. Run this as root: (mysql -u root -p)"
+	echo ""
+	echo "FAILED building database... wrong password? ...no user? ...no user privileges?"
+    echo ""
+    echo " ... To resolve no user issue:"
+    echo "    Run this as root: (mysql -u root -p)"
+    echo "  CREATE USER IF NOT EXISTS \`$DB_CONFIG_USER\`@'localhost' IDENTIFIED BY '***';"
+    echo "     NOTE: The '***' is the user's password in .my.cnf file"
+    echo ""
+    echo " ...Or, if this is the first time to run for this version, the user needs privileges to the database."
+    echo "    Run this as root: (mysql -u root -p)"
 	echo "   grant all privileges on \`"$DB_CONFIG_DBNAME"\`.* to \`$DB_CONFIG_USER\`@\`localhost\`;"
 	echo ""
-	exit 1
+
+    echo -n "Attempt to resolve (NOTE: will require root database access)? (y/N) "
+	if [ "$isforced" == "1" ]; then 
+		isready="Y"
+    fi
+    read isready
+    echo $isready
+	if ! [ "$isready" == "Y" -o "$isready" == "y" ] ; then
+        echo "... exiting"
+        exit 1
+    fi
+
+    db_access $sys $env $lsid $ver
+
+    if [ "$?" != "0" ]; then
+        exit 1
+    else
+        echo ""
+        echo "... created user and granted privileges, trying to build database again..."
+        echo ""
+    fi
+    mysql --defaults-file=$p/.my.cnf < $LS
+    if [ "$?" != "0" ]; then
+        echo ""
+        echo "ERROR: Failed. Bummer."
+        echo " ...This is beyond my abilities as a bash script to correct."
+        echo ""
+        exit 1
+    else
+        echo "SUCCESS! Seems to work, continuing..."
+    fi
+
 fi
 
 

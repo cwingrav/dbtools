@@ -2,13 +2,14 @@
 VERSION=v2
 TARGETDIR=/usr/local
 SRCDIR=`pwd`/$(VERSION)
-FILES= db_mstart db_transition db_saveall db_config db_savetable db_loadfileto
+FILES= db_mstart db_transition db_saveall db_config db_savetable db_loadfileto db_access
 
 install:
 	@echo "SRCDIR $(SRCDIR)"
 	-$(foreach f, $(FILES), rm -f  $(TARGETDIR)/bin/$(f))
 	-rm -f $(TARGETDIR)/etc/db/config.master.conf
 	-ln -s $(SRCDIR)/db_mstart      	$(TARGETDIR)/bin/db_mstart
+	-ln -s $(SRCDIR)/db_access          $(TARGETDIR)/bin/db_access
 	-ln -s $(SRCDIR)/db_transition  	$(TARGETDIR)/bin/db_transition
 	-ln -s $(SRCDIR)/db_saveall     	$(TARGETDIR)/bin/db_saveall
 	-ln -s $(SRCDIR)/db_config 		$(TARGETDIR)/bin/db_config
