@@ -73,7 +73,8 @@ done
 
 # Defines
 LS="$p/.rebuild.sql"
-echo "LS: $LS"
+LSOUT="$p/.rebuild.out"
+#echo "LS: $LS"
 OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
 
 if [ "$DB_CONFIG_SYS" == 'lcom' ] || [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
@@ -102,8 +103,8 @@ echo ""
 echo ""
 echo "Run pretests"
 echo "---------------------------------------------------------------------"
-if [ -f $p/ver$DB_CONFIG_VER/pretest.tcsh ]; then
-	source $p/ver$DB_CONFIG_VER/pretest.tcsh
+if [ -f $DB_CONFIG_DBDIR/pretest.tcsh ]; then
+	source $DB_CONFIG_DBDIR/pretest.tcsh
 	if [ $? == 0 ]; then 
    		echo "   ... passed"
 	else 
@@ -266,9 +267,9 @@ if [ ! -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS.sql" ]; then
 	exit 1
 fi
 echo "source ./load_$DB_CONFIG_SYS.sql;" >> $LS
-if [ -f "$p/$DB_CONFIG_DBLOAD""_$DB_CONFIG_ENVIRONMENT.sql" ]; then 
+if [ -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_ENVIRONMENT.sql" ]; then 
     echo " ...found load file for $DB_CONFIG_ENVIRONMENT."
-    echo "source $p/$DB_CONFIG_DBLOAD""_$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
+    echo "source $DB_CONFIG_DBDIR/load_$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
 fi
 
 #if [ ! -f $p/ver$DB_CONFIG_VER/load.sql ]; then
@@ -287,16 +288,25 @@ echo "Run import script"
 echo "---------------------------------------------------------------------"
 #echo " here, cd first to directory DB_CONFIG_DBDIR and then fix the .rebuild.sql file to not cd"
 #echo "  :: $p/$DB_CONFIG_DBDIR :: $LS"
-cd $DB_CONFIG_DBDIR ; mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS
-if [ $? == 0 ]; then
+#cd $DB_CONFIG_DBDIR ; mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS
+cd $DB_CONFIG_DBDIR 
+mysql --defaults-file=$DB_CONFIG_MYSQLMY < $LS > $LSOUT 2>&1
+RESULTIS=`cat $LSOUT`
+if [ "$RESULTIS" == "" ]; then
 	echo " ...SUCCESS!"
 	echo 
 	echo " ... successfully created database $DB_CONFIG_DBNAME"
 	echo 
 else
-	echo "ERROR: failed importing the script"
+    echo
+    echo $RESULTIS
+    echo
+	echo "ERROR: failed importing the scripts in $DB_CONFIG_DBDIR"
 	exit 1
 fi
+
+rm $LS
+rm $LSOUT
 
 exit $retval
 
