@@ -12,7 +12,7 @@ function DisplayOptions
     echo "    conffile - The location of the config.conf file."
     echo "             - Defaults to current directory, then prev, then prev, then error."
     echo "               NOTE: not implemented"
-    echo "    sys      - 'lcom','ccom' - local or cloud system"
+    echo "    sys      - 'LCOM','CCOM' - local or cloud system"
     echo "    env      - development environment 'test','dev','live'"
     echo "    lsid     - local system identifier"
     echo "    ver      - change the version number to X"
@@ -50,7 +50,7 @@ while [ "`echo $1 | cut -c 1`" == "-" ]; do
     elif [ "$1" == "-s" ] || [ "$1" == "--sys" ]; then
         shift
         sys="$1"
-        if [  "$sys" == "lcom" ] || [ "$sys" == "ccom" ] || [  "$sys" == "LCOM" ] || [ "$sys" == "CCOM" ]; then
+        if [ "$sys" == "LCOM" ] || [ "$sys" == "CCOM" ]; then
             a=1
         else
             echo "Bad system '$sys'."

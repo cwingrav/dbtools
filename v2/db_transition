@@ -77,7 +77,7 @@ LSOUT="$p/.rebuild.out"
 #echo "LS: $LS"
 OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
 
-if [ "$DB_CONFIG_SYS" == 'lcom' ] || [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
+if [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
     OLDDBNAME=$(ComputeLDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER $DB_CONFIG_LSID)
 else
     OLDDBNAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
@@ -267,9 +267,9 @@ if [ ! -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS.sql" ]; then
 	exit 1
 fi
 echo "source ./load_$DB_CONFIG_SYS.sql;" >> $LS
-if [ -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_ENVIRONMENT.sql" ]; then 
-    echo " ...found load file for $DB_CONFIG_ENVIRONMENT."
-    echo "source $DB_CONFIG_DBDIR/load_$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
+if [ -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql" ]; then 
+    echo " ...found load file for environment '$DB_CONFIG_ENVIRONMENT' : $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql."
+    echo "source $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
 fi
 
 #if [ ! -f $p/ver$DB_CONFIG_VER/load.sql ]; then
