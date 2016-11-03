@@ -267,6 +267,8 @@ if [ ! -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS.sql" ]; then
 	exit 1
 fi
 echo "source ./load_$DB_CONFIG_SYS.sql;" >> $LS
+
+echo " ...looking for file for environment '$DB_CONFIG_ENVIRONMENT' : $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql."
 if [ -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql" ]; then 
     echo " ...found load file for environment '$DB_CONFIG_ENVIRONMENT' : $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql."
     echo "source $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
@@ -305,8 +307,8 @@ else
 	exit 1
 fi
 
-rm $LS
-rm $LSOUT
+#rm $LS
+#rm $LSOUT
 
 exit $retval
 

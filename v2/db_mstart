@@ -1,6 +1,28 @@
 #!/bin/bash
 
 retval=0
+QUIET=0
+
+function ErrorOut 
+{
+    set retval=1
+    echo "ERROR: bad command line arguments"
+    echo "   $*"
+    DisplayOptions2
+}
+function DisplayOptions2
+{
+    echo 
+    echo "Usage: "`basename $0`" (-h|--help) {[environment] [version]} {msqlargs}"
+    echo "Usage: "`basename $0`" (-h|--help) cmd [msqlargs]"
+    echo
+    echo "   Starts mysql's client with the appropriate database."
+    echo 
+    echo "   environment - 'dev','test','live'"
+    echo "           ver - The database version number."
+    echo
+    exit $retval
+}
 
 #set pp=`dirname $0`
 #cwd=`pwd`"/."
@@ -16,46 +38,52 @@ retval=0
 . db_config
 
 while [ "`echo $1 | cut -c 1`" == "-" ]; do
-    if [ "$1" == "-h" || "$1" == "--help" ]; then
-        goto DisplayOptions
+    echo "cmd $1"
+    if [ "$1" == "-q" || "$1" == "--quite" ]; then
+        QUIET=1
+        echo "silent"
+    elif [ "$1" == "-h" || "$1" == "--help" ]; then
+        DisplayOptions2
     fi
     shift
 done
 
-# Overwrite due to command line arguments
-if [ $# == 0 ]; then
+
+# preserve cmds to mysql
+if [ "$1" == "cmd" ]; then
+        shift
+
+# just start
+elif [ $# == 0 ]; then
     a=1
 
-elif [ $# == 2  ]; then
+elif [ $# -ge 2  ]; then
+# Overwrite due to command line arguments
     DB_CONFIG_ENVIRONMENT=$1
     DB_CONFIG_VER=$2
     DB_CONFIG_NAME=$(ComputeDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER)
+    shift
+    shift
 
 else 
-    goto ErrorOut
+    ErrorOut
 fi
 
 
-echo ""
-echo "Joining MySQL database '$DB_CONFIG_DBNAME'"
-echo ""
-mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME
+if [ "$QUITE" == "0" ]; then
+    echo ""
+    echo "Joining MySQL database '$DB_CONFIG_DBNAME'"
+    echo ""
+fi
+
+#echo "cmd: mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME -N -B $*"
+if [ $# -gt 0 ]; then
+    mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME -N -B "$*"
+else
+    mysql --defaults-file=$DB_CONFIG_MYSQLMY $DB_CONFIG_DBNAME
+fi
 set retval=$?
 exit $retval
 
 
 
-ErrorOut:
-    set retval=1
-    echo "ERROR: bad command line arguments"
-    echo "   $*"
-DisplayOptions:
-    echo 
-    echo "Usage: "`basename $0`" (-h|--help) {[environment] [version]}"
-    echo
-    echo "   Starts mysql's client with the appropriate database."
-    echo 
-    echo "   environment - 'dev','test','live'"
-    echo "           ver - The database version number."
-    echo
-exit $retval
