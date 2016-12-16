@@ -21,11 +21,20 @@ Useful things for managing databases with projects and across different developm
 
 
 ## Setup:
-1. Create a config.ini file in your project's main directory.
-1. Create a directory 'db' and put a file _dbsettings in it. 
-1. Create a directory 'db/ver1' and put a 'load.sql' file.
+1. Cretae a config.conf file, to name your project's environment variable root. See below.
+1. Create a config.ini file in your project's ROOT directory. Use the sample below to get started.
+1. Create a directory ROOT/'db_common'. This can be changed in the config.ini file's DB.loaddir setting.
+1. Create a directory ROOT/'db/ver1' and put a 'load.sql' file.
 
-### config.ini
+### ROOT/config.conf
+
+Sets the CONFIGBASE variables, which is the name of your environment variables to use. For example:
+
+    CONFIGBASE='MICROTEMP'
+
+
+### ROOT/config.ini
+
 Common settings used in this project. Useful if you are using several development languages and tools, since ini is generally readable by all.
 ```
 version=1
@@ -49,40 +58,10 @@ live.host=?
 live.port=80
 ```
 
-### _dbsettings
-
-A file that creates variables to use with the scripts in this package. It reads from the config.ini file.
-``` tcsh
-#!/bin/bash
-
-# read from ini file
-export CONFIGLOC="../config.ini"
-
-# Override config.ini settings with ENV variables.
-if  [ -n "$MICROTEMP_ENV" ];  then
-ENVIRONMENT=$MICROTEMP_ENV
-fi
-
-APPNAME=`eval "php -r 'echo parse_ini_file("'"'$CONFIGLOC'"'")["'"'"appname"'"'"]"";'"`
-ENVIRONMENT=`eval "php -r 'echo parse_ini_file("'"'$CONFIGLOC'"'")["'"'"environment"'"'"]"";'"`
-export DBVER=`eval "php -r 'echo parse_ini_file("'"'$CONFIGLOC'"'")["'"'"version"'"'"]"";'"`
-export DBUSER=`eval "php -r 'echo parse_ini_file("'"'$CONFIGLOC'"'",true)["'"'"DB"'"'"]["'"'"user"'"'"]"";'"`
-
-ComputeDBName() {
-    appname="$1";
-    environment="$2";
-    dbver="$3";
-    retval="cwingrav_"$appname"_"$environment"_$dbver";
-    echo $retval
-        return 0
-}
-
-export DBNAME=$(ComputeDBName $APPNAME $ENVIRONMENT $DBVER)
-```
 
 ### load.sql
-Put all your sql code to use when you initialize your database. I.e. structures and data if you care.
+Put all your sql code to use when you initialize your database. I.e. structures and data if you care. The first
+version of this can do whatever you want, but continuing versions should be updates only. I.e. Don't redeclare a table,
+        but only alters.
 
-NOTE: I generally separate structure and data into separate files and put two lines in this file: 
-* source ../db/ver1/struct.sql
-* source ../db/ver1/initdata.sql
+This reads in the file db/verX/load_SYSTEM.sql. ex. db/ver2/load_CCOM.sql. Then, if it exists, the environment. ex. db/ver2/load_CCOM_test.sql. The best way to structure the load files is by structure changes, and then data. So, you create struct_updates.sql, loaded by both load_SYSTEM.sql files, then in each ENVIRONMENT file, load a different initdata_CCOM_ENVIRONMENT.sql file.
