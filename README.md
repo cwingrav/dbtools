@@ -5,11 +5,14 @@ Useful things for managing databases with projects and across different developm
 ## How To
 
 1. Create a Database
+* Use the command: ```db_transition```
 
 2. Recreate a Database
+* Rerun the command: ```db_transition```
 
-3. Open A MySQL Console
+3. Open A MySQL Console to the database.
 * type **db_mstart**
+
 
 ## Scripts
 
@@ -41,27 +44,52 @@ version=1
 
 appname=microtemp
 environment=dev
-; env=test
-; env=live
+; environment=test
+; environment=live
 
 [DB]
+loaddir=db
 user=microtemp
 ; NOTE: should be appname
-password=
+password=***YOUR DB PASSWORD***
 
 [SERVER]
+; The server runs on different ports for different environments.
 dev.host=localhost
-dev.port=
+dev.port=*****1
 test.host=localhost
-test.port=
-live.host=?
+test.port=******2
+live.host=MYHOST.COM
 live.port=80
 ```
 
 
 ### load.sql
 Put all your sql code to use when you initialize your database. I.e. structures and data if you care. The first
-version of this can do whatever you want, but continuing versions should be updates only. I.e. Don't redeclare a table,
-        but only alters.
+version of this can do whatever you want, but continuing versions should be updates only. I.e. Don't redeclare a table, but only alters.
 
 This reads in the file db/verX/load_SYSTEM.sql. ex. db/ver2/load_CCOM.sql. Then, if it exists, the environment. ex. db/ver2/load_CCOM_test.sql. The best way to structure the load files is by structure changes, and then data. So, you create struct_updates.sql, loaded by both load_SYSTEM.sql files, then in each ENVIRONMENT file, load a different initdata_CCOM_ENVIRONMENT.sql file.
+
+Typical starting files:
+
+    ROOT/db/ver1/load_CCOM.sql
+    ROOT/db/ver1/load_LCOM.sql
+    ROOT/db/ver1/struct.sql
+    ROOT/db/ver1/initdata_CCOM_dev.sql
+    ROOT/db/ver1/initdata_CCOM_test.sql
+    ROOT/db/ver1/initdata_CCOM_live.sql
+    ROOT/db/ver1/initdata_LCOM_dev.sql
+    ROOT/db/ver1/initdata_LCOM_test.sql
+    ROOT/db/ver1/initdata_LCOM_live.sql
+
+
+ROOT/db/ver1/load_CCOM.sql:
+
+    source ./struct.sql
+    source ./initdata_CCOM.sql
+
+
+ROOT/db/ver1/load_LCOM.sql:
+
+    source ./struct.sql
+    source ./initdata_LCOM.sql
