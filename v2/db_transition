@@ -272,6 +272,8 @@ echo " ...looking for file for environment '$DB_CONFIG_ENVIRONMENT' : $DB_CONFIG
 if [ -f "$DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql" ]; then 
     echo " ...found load file for environment '$DB_CONFIG_ENVIRONMENT' : $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql."
     echo "source $DB_CONFIG_DBDIR/load_$DB_CONFIG_SYS""_""$DB_CONFIG_ENVIRONMENT.sql;" >> $LS
+else 
+    echo "   ... none, continuing"
 fi
 
 #if [ ! -f $p/ver$DB_CONFIG_VER/load.sql ]; then
