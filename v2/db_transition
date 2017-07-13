@@ -75,7 +75,11 @@ done
 LS="$p/.rebuild.sql"
 LSOUT="$p/.rebuild.out"
 #echo "LS: $LS"
-OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
+let "OLDDBVER = DB_CONFIG_VER-1"
+#OLDDBVER=`php -r "echo $DB_CONFIG_VER-1;";`
+#echo "OLDDBVER $OLDDBVER FROM $DB_CONFIG_VER"
+
+
 
 if [ "$DB_CONFIG_SYS" == "LCOM" ] ; then
     OLDDBNAME=$(ComputeLDBName $DB_CONFIG_APPNAME $DB_CONFIG_SYS $DB_CONFIG_ENVIRONMENT $OLDDBVER $DB_CONFIG_LSID)
