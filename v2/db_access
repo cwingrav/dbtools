@@ -61,7 +61,11 @@ done
 # FLUSH PRIVILEGES;
 
 # get password from .my.cnf file
-upwd=`eval "php -r 'echo parse_ini_file("'"'$DB_CONFIG_MYSQLMY'"'",true)["'"'"client"'"'"]["'"'"password"'"'"]"";'"`
+
+read_ini $DB_CONFIG_MYSQLMY
+upwd="$INI__client__password" 
+echo "NOTE: added the above two lines and commented out below wihtout testing."
+#upwd=`eval "php -r 'echo parse_ini_file("'"'$DB_CONFIG_MYSQLMY'"'",true)["'"'"client"'"'"]["'"'"password"'"'"]"";'"`
 #echo "yser pswd $upwd"
 
 echo "CREATE USER IF NOT EXISTS \`$DB_CONFIG_USER\`@'localhost' IDENTIFIED BY '$upwd';" > $LS1
